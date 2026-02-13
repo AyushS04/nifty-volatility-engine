@@ -46,7 +46,6 @@ class LocalVolatility:
         rows = []
 
         for _, row in surface_df.iterrows():
-
             C = black_scholes_price(
                 S0,
                 row['strike'],
@@ -77,6 +76,14 @@ class LocalVolatility:
         )
 
         C_grid = np.nan_to_num(C_grid, nan=0.0)
+
+        # Drop boundary rows/cols (critical stability step)
+        K_grid = K_grid[1:-1, 1:-1]
+        T_grid = T_grid[1:-1, 1:-1]
+        C_grid = C_grid[1:-1, 1:-1]
+
+        strikes = strikes[1:-1]
+        maturities = maturities[1:-1]
 
         dC_dT = np.gradient(C_grid, maturities, axis=0)
         d2C_dK2 = np.gradient(
