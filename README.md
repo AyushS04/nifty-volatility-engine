@@ -54,3 +54,9 @@ Monte Carlo prices converge to Black–Scholes benchmark within tolerance.
 ## Author
 
 Ayush Sharma
+
+---
+
+## Implied Volatility Surface Example
+
+![Vol Surface](surface_plot.png)
