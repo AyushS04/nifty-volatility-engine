@@ -60,3 +60,12 @@ Ayush Sharma
 ## Implied Volatility Surface Example
 
 ![Vol Surface](surface_plot.png)
+
+## Local Vol vs GBM Comparison
+
+Below we compare terminal distributions under:
+
+- Constant volatility (GBM)
+- State-dependent volatility (Local Vol via Dupire)
+
+![Local Vol vs GBM](lv_vs_gbm.png)
