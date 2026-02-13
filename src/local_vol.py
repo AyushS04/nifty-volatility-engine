@@ -40,19 +40,34 @@ class LocalVolatility:
             (call_surface['strike'], call_surface['T']),
             call_surface['call_price'],
             (K_grid, T_grid),
-            method='cubic'
+            method='linear'  # Changed from cubic ? linear for stability
         )
 
+        # Fill any NaNs from interpolation
+        C_values = np.nan_to_num(C_values, nan=0.0)
+
+        # First derivative wrt T
         dC_dT = np.gradient(C_values, maturities, axis=0)
+
+        # Second derivative wrt K (Gamma)
         d2C_dK2 = np.gradient(
             np.gradient(C_values, strikes, axis=1),
             strikes,
             axis=1
         )
 
+        # Gamma floor to avoid division explosion
+        gamma_floor = 1e-6
+        d2C_dK2 = np.where(np.abs(d2C_dK2) < gamma_floor, gamma_floor, d2C_dK2)
+
+        # Dupire formula
         local_var = dC_dT / (0.5 * (K_grid**2) * d2C_dK2)
 
+        # Enforce positivity
         local_var = np.maximum(local_var, 0)
+
+        # Clip extreme variance (cap at 100% vol)
+        local_var = np.clip(local_var, 0, 1.0)
 
         local_vol = np.sqrt(local_var)
 
