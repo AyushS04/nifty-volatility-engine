@@ -1,12 +1,9 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-# Load surface (replace with your actual CSV if needed)
 surface = pd.read_csv("data/surface_sample.csv", parse_dates=['date','expiry'])
 
-# Filter single date for clean visualization
 latest_date = surface['date'].max()
 surface = surface[surface['date'] == latest_date]
 
