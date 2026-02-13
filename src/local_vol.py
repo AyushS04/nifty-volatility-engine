@@ -36,38 +36,53 @@ class LocalVolatility:
 
         K_grid, T_grid = np.meshgrid(strikes, maturities)
 
-        C_values = griddata(
+        # Step 1: Linear interpolation
+        C_raw = griddata(
             (call_surface['strike'], call_surface['T']),
             call_surface['call_price'],
             (K_grid, T_grid),
-            method='linear'  # Changed from cubic ? linear for stability
+            method='linear'
         )
 
-        # Fill any NaNs from interpolation
-        C_values = np.nan_to_num(C_values, nan=0.0)
+        C_raw = np.nan_to_num(C_raw, nan=0.0)
 
-        # First derivative wrt T
-        dC_dT = np.gradient(C_values, maturities, axis=0)
+        # Step 2: Smooth surface using low-degree polynomial fit
+        X = np.column_stack([
+            K_grid.flatten(),
+            T_grid.flatten(),
+            (K_grid**2).flatten(),
+            (T_grid**2).flatten(),
+            (K_grid*T_grid).flatten()
+        ])
 
-        # Second derivative wrt K (Gamma)
+        y = C_raw.flatten()
+
+        # Least squares polynomial smoothing
+        beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+
+        C_smooth = (
+            beta[0]*K_grid +
+            beta[1]*T_grid +
+            beta[2]*(K_grid**2) +
+            beta[3]*(T_grid**2) +
+            beta[4]*(K_grid*T_grid)
+        )
+
+        # Step 3: Derivatives
+        dC_dT = np.gradient(C_smooth, maturities, axis=0)
+
         d2C_dK2 = np.gradient(
-            np.gradient(C_values, strikes, axis=1),
+            np.gradient(C_smooth, strikes, axis=1),
             strikes,
             axis=1
         )
 
-        # Gamma floor to avoid division explosion
         gamma_floor = 1e-6
         d2C_dK2 = np.where(np.abs(d2C_dK2) < gamma_floor, gamma_floor, d2C_dK2)
 
-        # Dupire formula
         local_var = dC_dT / (0.5 * (K_grid**2) * d2C_dK2)
 
-        # Enforce positivity
         local_var = np.maximum(local_var, 0)
-
-        # Clip extreme variance (cap at 100% vol)
-        local_var = np.clip(local_var, 0, 1.0)
 
         local_vol = np.sqrt(local_var)
 
