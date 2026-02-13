@@ -9,11 +9,13 @@ class LocalVolMonteCarlo:
         strikes = K_grid[0]
         maturities = T_grid[:,0]
 
+        mean_vol = float(np.mean(local_vol_surface))
+
         self.vol_interp = RegularGridInterpolator(
             (maturities, strikes),
             local_vol_surface,
             bounds_error=False,
-            fill_value=None
+            fill_value=mean_vol   # ? STABLE fallback
         )
 
     def simulate(self, S0, T, steps=100, paths=2000):
@@ -35,7 +37,7 @@ class LocalVolMonteCarlo:
                 ])
             )
 
-            vols = np.nan_to_num(vols, nan=0.15)
+            vols = np.maximum(vols, 0.05)  # safety floor
 
             S[t] = S[t-1] * np.exp(
                 (self.r - 0.5*vols**2)*dt + vols*np.sqrt(dt)*Z
